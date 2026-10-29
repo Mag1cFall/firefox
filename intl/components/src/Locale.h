@@ -208,8 +208,11 @@ class MOZ_STACK_CLASS Locale final {
 
  private:
   LanguageSubtag mLanguage = {};
+  mutable LanguageSubtag mCamouLanguage = {};
   ScriptSubtag mScript = {};
+  mutable ScriptSubtag mCamouScript = {};
   RegionSubtag mRegion = {};
+  mutable RegionSubtag mCamouRegion = {};
 
   VariantsVector mVariants;
   ExtensionsVector mExtensions;
@@ -338,9 +341,28 @@ class MOZ_STACK_CLASS Locale final {
     }
   };
 
-  const LanguageSubtag& Language() const { return mLanguage; }
-  const ScriptSubtag& Script() const { return mScript; }
-  const RegionSubtag& Region() const { return mRegion; }
+  const LanguageSubtag& Language() const {
+    if (const char* lang = GetCamouLanguage()) {
+      mCamouLanguage.Set(mozilla::Span<const char>(lang, strlen(lang)));
+      return mCamouLanguage;
+    }
+    return mLanguage;
+  }
+  const ScriptSubtag& Script() const {
+    if (const char* script = GetCamouScript()) {
+      mCamouScript.Set(mozilla::Span<const char>(script, strlen(script)));
+      return mCamouScript;
+    }
+    return mScript;
+  }
+  const RegionSubtag& Region() const {
+    if (const char* region = GetCamouRegion()) {
+      mCamouRegion.Set(mozilla::Span<const char>(region, strlen(region)));
+      return mCamouRegion;
+    }
+    return mRegion;
+  }
+
   auto Variants() const { return SubtagEnumeration(mVariants); }
   auto Extensions() const { return SubtagEnumeration(mExtensions); }
   Maybe<Span<const char>> PrivateUse() const {
@@ -518,7 +540,15 @@ class MOZ_STACK_CLASS Locale final {
    *
    * Also see <https://unicode-org.github.io/icu/userguide/locale>.
    */
-  static const char* GetDefaultLocale() { return uloc_getDefault(); }
+  static const char* GetDefaultLocale();
+
+  static const char* GetCamouLocale();
+
+  static const char* GetCamouLanguage();
+
+  static const char* GetCamouRegion();
+
+  static const char* GetCamouScript();
 
   /**
    * Returns an iterator over all supported locales.

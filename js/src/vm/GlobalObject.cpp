@@ -63,6 +63,7 @@
 #include "vm/DateObject.h"
 #include "vm/EnvironmentObject.h"
 #include "vm/ErrorObject.h"
+#include "vm/FrameIter.h"
 #include "vm/GeneratorObject.h"
 #include "vm/JSContext.h"
 #include "vm/NumberObject.h"
@@ -489,6 +490,45 @@ bool GlobalObject::resolveConstructor(JSContext* cx,
   }
 
   return true;
+}
+
+// resolveExistingConstructor 在宿主预先使用标准类后按用户脚本的使用顺序暴露构造器
+bool GlobalObject::resolveExistingConstructor(JSContext* cx,
+                                             Handle<GlobalObject*> global,
+                                             JSProtoKey key) {
+  JSResolveOp resolve = global->getClass()->getResolve();
+  if (!resolve || resolve == JS_ResolveStandardClass) {
+    return true;
+  }
+  if (key == JSProto_GeneratorFunction) {
+    return resolveExistingConstructor(cx, global, JSProto_Iterator);
+  }
+  if (!ProtoKeyToClass(key)->specShouldDefineConstructor() ||
+      global->containsPure(ClassName(key, cx))) {
+    return true;
+  }
+  for (ScriptFrameIter frame(cx); !frame.done(); ++frame) {
+    JSScript* script = frame.script();
+    if (script->selfHosted()) {
+      continue;
+    }
+    if (script->filename() && strcmp(script->filename(), "self-hosted") == 0) {
+      return true;
+    }
+    break;
+  }
+  RootedObject object(cx, global);
+  RootedId id(cx, NameToId(ClassName(key, cx)));
+  bool resolved;
+  return resolve(cx, object, id, &resolved);
+}
+
+// mozjs_delete_global_property 挂起宿主安装时定义的全局属性
+extern "C" MOZ_EXPORT bool mozjs_delete_global_property(JSContext* cx,
+                                                       JSObject* global,
+                                                       HandleId id) {
+  Rooted<NativeObject*> object(cx, &global->as<NativeObject>());
+  return NativeObject::removeProperty(cx, object, id);
 }
 
 // Resolve a "globalThis" self-referential property if necessary,

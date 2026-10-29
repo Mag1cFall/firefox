@@ -4903,7 +4903,9 @@ static bool GetScriptedCallerActivationRealmFast(JSContext* cx,
   } else if (activationIter->isInterpreter()) {
     InterpreterActivation* act = activationIter->asInterpreter();
     for (InterpreterFrameIterator iter(act); !iter.done(); ++iter) {
-      if (!iter.frame()->script()->selfHosted()) {
+      JSScript* script = iter.frame()->script();
+      if (!script->selfHosted() &&
+          !(script->filename() && strcmp(script->filename(), "self-hosted") == 0)) {
         *activation = act;
         *realm = iter.frame()->script()->realm();
         return true;

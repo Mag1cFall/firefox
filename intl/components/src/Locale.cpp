@@ -21,9 +21,50 @@
 #include "unicode/uloc.h"
 #include "unicode/utypes.h"
 
+#include <string>
+
 namespace mozilla::intl {
 
 using namespace intl::LanguageTagLimits;
+
+// sCamouLanguage、sCamouRegion 与 sCamouLocale 是当前线程上 Camoufox MaskConfig 的 locale:language、locale:region 与 navigator.language
+static thread_local std::string sCamouLanguage;
+static thread_local std::string sCamouRegion;
+static thread_local std::string sCamouLocale;
+
+const char* Locale::GetCamouLanguage() {
+  return sCamouLanguage.empty() ? nullptr : sCamouLanguage.c_str();
+}
+
+const char* Locale::GetCamouRegion() {
+  return sCamouRegion.empty() ? nullptr : sCamouRegion.c_str();
+}
+
+const char* Locale::GetCamouScript() { return nullptr; }
+
+const char* Locale::GetCamouLocale() {
+  return sCamouLocale.empty() ? nullptr : sCamouLocale.c_str();
+}
+
+const char* Locale::GetDefaultLocale() {
+  if (const char* value = GetCamouLocale()) {
+    return value;
+  }
+  return uloc_getDefault();
+}
+
+}  // namespace mozilla::intl
+
+// mozjs_set_camou_locale 设置当前线程的 Camoufox 区域设置
+extern "C" MOZ_EXPORT void mozjs_set_camou_locale(const char* language,
+                                                  const char* region,
+                                                  const char* locale) {
+  mozilla::intl::sCamouLanguage = language ? language : "";
+  mozilla::intl::sCamouRegion = region ? region : "";
+  mozilla::intl::sCamouLocale = locale ? locale : "";
+}
+
+namespace mozilla::intl {
 
 template <typename CharT>
 bool IsStructurallyValidLanguageTag(Span<const CharT> aLanguage) {
