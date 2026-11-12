@@ -345,10 +345,14 @@ class GlobalObject : public NativeObject {
                                  JSProtoKey key, IfClassIsDisabled mode);
 
  public:
+  static bool resolveExistingConstructor(JSContext* cx,
+                                        Handle<GlobalObject*> global,
+                                        JSProtoKey key);
+
   static bool ensureConstructor(JSContext* cx, Handle<GlobalObject*> global,
                                 JSProtoKey key) {
     if (global->isStandardClassResolved(key)) {
-      return true;
+      return resolveExistingConstructor(cx, global, key);
     }
     return resolveConstructor(cx, global, key, IfClassIsDisabled::Throw);
   }
@@ -725,6 +729,9 @@ class GlobalObject : public NativeObject {
                                            Handle<GlobalObject*> global,
                                            ProtoKind kind, Handle<JSAtom*> tag,
                                            ObjectInitWithTagOp init) {
+    if (!ensureConstructor(cx, global, JSProto_Iterator)) {
+      return nullptr;
+    }
     if (JSObject* proto = global->maybeBuiltinProto(kind)) {
       return proto;
     }

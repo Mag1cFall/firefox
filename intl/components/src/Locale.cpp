@@ -21,9 +21,27 @@
 #include "unicode/uloc.h"
 #include "unicode/utypes.h"
 
+#include <string>
+
 namespace mozilla::intl {
 
 using namespace intl::LanguageTagLimits;
+
+// sCamouLocale 是当前线程上 Camoufox 的 navigator.language，非空时代替 ICU 默认区域
+static thread_local std::string sCamouLocale;
+
+const char* Locale::GetDefaultLocale() {
+  return sCamouLocale.empty() ? uloc_getDefault() : sCamouLocale.c_str();
+}
+
+}  // namespace mozilla::intl
+
+// mozjs_set_camou_locale 设置当前线程的 Camoufox 默认区域
+extern "C" MOZ_EXPORT void mozjs_set_camou_locale(const char* locale) {
+  mozilla::intl::sCamouLocale = locale ? locale : "";
+}
+
+namespace mozilla::intl {
 
 template <typename CharT>
 bool IsStructurallyValidLanguageTag(Span<const CharT> aLanguage) {
