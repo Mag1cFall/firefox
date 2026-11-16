@@ -4150,6 +4150,7 @@ dependencies = [
  "normalizer_glue",
  "properties_glue",
  "unicode-bidi-ffi",
+ "zlib-rs",
 ]
 
 [[package]]

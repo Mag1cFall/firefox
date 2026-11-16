@@ -74,7 +74,7 @@ def link_libstdcxx_statically(
             )
 
 
-@depends(when=link_libstdcxx_statically)
+@depends(when=link_libstdcxx_statically & depends(build_project)(lambda p: p != "js"))
 def check_libstdcxx_linkage():
     die("Firefox does not support linking statically with libstdc++")
 

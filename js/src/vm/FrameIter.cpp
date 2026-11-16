@@ -8,6 +8,7 @@
 #include <stddef.h>  // size_t
 #include <stdint.h>  // uint8_t, uint32_t
 #include <stdlib.h>  // getenv
+#include <string.h>  // strcmp
 
 #include "jit/BaselineFrame.h"   // js::jit::BaselineFrame
 #include "jit/JitFrames.h"       // js::jit::EnsureUnwoundJitExitFrame
@@ -102,6 +103,15 @@ void JitFrameIter::skipNonScriptedJSFrames() {
   }
 }
 
+// IsHiddenScript 判断脚本是否不出现在调用方帧中：自托管脚本与嵌入方以 self-hosted 来源名编译的宿主脚本
+static bool IsHiddenScript(JSScript* script) {
+  if (script->selfHosted()) {
+    return true;
+  }
+  const char* filename = script->filename();
+  return filename && strcmp(filename, "self-hosted") == 0;
+}
+
 bool JitFrameIter::isSelfHostedIgnoringInlining() const {
   MOZ_ASSERT(!done());
 
@@ -109,7 +119,7 @@ bool JitFrameIter::isSelfHostedIgnoringInlining() const {
     return false;
   }
 
-  return asJSJit().script()->selfHosted();
+  return IsHiddenScript(asJSJit().script());
 }
 
 JS::Realm* JitFrameIter::realm() const {
@@ -1050,7 +1060,7 @@ bool js::SelfHostedFramesVisible() {
 
 void NonBuiltinFrameIter::settle() {
   if (!SelfHostedFramesVisible()) {
-    while (!done() && hasScript() && script()->selfHosted()) {
+    while (!done() && hasScript() && IsHiddenScript(script())) {
       FrameIter::operator++();
     }
   }
@@ -1058,7 +1068,7 @@ void NonBuiltinFrameIter::settle() {
 
 void NonBuiltinScriptFrameIter::settle() {
   if (!SelfHostedFramesVisible()) {
-    while (!done() && script()->selfHosted()) {
+    while (!done() && IsHiddenScript(script())) {
       ScriptFrameIter::operator++();
     }
   }

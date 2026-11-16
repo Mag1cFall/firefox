@@ -21,6 +21,7 @@ normalizer_glue = { path = "../../builtin/normalizer_glue" }
 properties_glue = { path = "../../irregexp/properties_glue", optional = true }
 collator_glue = { path = "../../builtin/intl/collator_glue", optional = true }
 locale_glue = { path = "../../builtin/intl/locale_glue", optional = true }
+zlib-rs = { version = "0.6", features = ["avx512", "__internal-api"] }
 
 [features]
 simd-accel = ['encoding_c/simd-accel']

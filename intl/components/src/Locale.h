@@ -512,7 +512,7 @@ class MOZ_STACK_CLASS Locale final {
    *
    * Also see <https://unicode-org.github.io/icu/userguide/locale>.
    */
-  static const char* GetDefaultLocale() { return uloc_getDefault(); }
+  static const char* GetDefaultLocale();
 
   /**
    * Returns an iterator over all supported locales.
